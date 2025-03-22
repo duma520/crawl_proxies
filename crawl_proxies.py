@@ -9,6 +9,8 @@ import urllib3
 import re
 import os
 import random
+import subprocess
+import sys
 
 # 配置日志
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -28,7 +30,7 @@ user_agents = [
 ]
 
 # 验证代理IP是否可用
-def validate_proxy(proxy, verify_url, timeout=30, verify_ssl=False):
+def validate_proxy(proxy, verify_url, timeout=10, verify_ssl=False):
     try:
         proxies = {
             'http': proxy if proxy.startswith(('http://', 'https://', 'socks5://')) else f"http://{proxy}",
@@ -54,7 +56,7 @@ def is_valid_proxy(proxy):
     return bool(ip_port_pattern.match(proxy))
 
 # 获取代理IP的函数
-def get_proxies_from_url(url, table_id=None, ip_index=0, port_index=1, proxy_type_index=None, proxy=None, show=False, show_invalid=False, verbose=False, interval=2):
+def get_proxies_from_url(url, table_id=None, ip_index=0, port_index=1, proxy_type_index=None, proxy=None, show=False, show_invalid=False, verbose=False, interval=2, request_timeout=30):
     try:
         proxies = None
         if proxy:
@@ -80,7 +82,7 @@ def get_proxies_from_url(url, table_id=None, ip_index=0, port_index=1, proxy_typ
         time.sleep(interval)
 
         # 发送请求
-        response = requests.get(url, headers=headers, proxies=proxies, timeout=60, verify=False)
+        response = requests.get(url, headers=headers, proxies=proxies, timeout=request_timeout, verify=False)
         response.raise_for_status()
 
         # 打印响应内容（仅在启用 --verbose 时）
@@ -171,7 +173,7 @@ def read_proxy_sites_from_file(filename="proxy_sites.txt"):
 proxy_sites = read_proxy_sites_from_file("proxy_sites.txt")
 
 # 主函数
-def main(proxy=None, validate=False, show=False, verify_url="https://www.google.com", verify_ssl=False, add_prefix=False, timestamp=False, deduplicate=False, deduplicate_file=None, deduplicate_after_save=False, show_invalid=False, simple_report=False, verbose=False, overnight=False, interval=2):
+def main(proxy=None, validate=False, show=False, verify_url="https://www.google.com", verify_ssl=False, add_prefix=False, timestamp=False, deduplicate=False, deduplicate_file=None, deduplicate_after_save=False, show_invalid=False, simple_report=False, verbose=False, overnight=False, interval=2, validate_timeout=10, request_timeout=30):
     all_proxies = []
 
     # 如果需要去重
@@ -183,7 +185,7 @@ def main(proxy=None, validate=False, show=False, verify_url="https://www.google.
     with ThreadPoolExecutor(max_workers=5) as executor:
         futures = {}
         for site in proxy_sites:
-            future = executor.submit(get_proxies_from_url, site['url'], site['table_id'], site['ip_index'], site['port_index'], site['proxy_type_index'], proxy, show, show_invalid, verbose, interval)
+            future = executor.submit(get_proxies_from_url, site['url'], site['table_id'], site['ip_index'], site['port_index'], site['proxy_type_index'], proxy, show, show_invalid, verbose, interval, request_timeout)
             futures[future] = site['url']  # 记录 future 对应的网站 URL
 
         for future in as_completed(futures):
@@ -206,7 +208,7 @@ def main(proxy=None, validate=False, show=False, verify_url="https://www.google.
     if validate:
         valid_proxies = []
         with ThreadPoolExecutor(max_workers=10) as executor:
-            futures = [executor.submit(validate_proxy, proxy, verify_url, 10, verify_ssl) for proxy in unique_proxies]
+            futures = [executor.submit(validate_proxy, proxy, verify_url, validate_timeout, verify_ssl) for proxy in unique_proxies]
             for future in as_completed(futures):
                 result = future.result()
                 if result:
@@ -236,9 +238,10 @@ def main(proxy=None, validate=False, show=False, verify_url="https://www.google.
 
     # 通宵挂机模式
     if overnight:
-        while True:
-            logging.info("通宵挂机模式运行中...")
-            time.sleep(interval)
+        logging.info("通宵挂机模式运行中...")
+        time.sleep(interval)
+        logging.info("重新启动程序...")
+        subprocess.run([sys.executable] + sys.argv)
 
 if __name__ == "__main__":
     # 解析命令行参数
@@ -258,6 +261,8 @@ if __name__ == "__main__":
     parser.add_argument('--verbose', action='store_true', help="显示详细的调试信息。")
     parser.add_argument('--overnight', action='store_true', help="启用通宵挂机无人值守模式。")
     parser.add_argument('--interval', type=int, default=2, help="自定义每次爬取的间隔时间（单位为秒，默认：2秒）。")
+    parser.add_argument('--validate-timeout', type=int, default=10, help="验证代理IP的超时时间（单位为秒，默认：10秒）。")
+    parser.add_argument('--request-timeout', type=int, default=30, help="发送请求的超时时间（单位为秒，默认：30秒）。")
     args = parser.parse_args()
 
     # 忽略SSL验证警告
@@ -265,4 +270,4 @@ if __name__ == "__main__":
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
     # 运行主函数
-    main(args.proxy, args.validate, args.show, args.verify_url, args.verify_ssl, args.add_prefix, args.timestamp, args.deduplicate, args.deduplicate_file, args.deduplicate_after_save, args.show_invalid, args.simple_report, args.verbose, args.overnight, args.interval)
+    main(args.proxy, args.validate, args.show, args.verify_url, args.verify_ssl, args.add_prefix, args.timestamp, args.deduplicate, args.deduplicate_file, args.deduplicate_after_save, args.show_invalid, args.simple_report, args.verbose, args.overnight, args.interval, args.validate_timeout, args.request_timeout)
