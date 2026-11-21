@@ -1,0 +1,40 @@
+http://5.39.217.76/memcp.php?action=credits
+
+usage: crawl_proxies.py [-h] [--proxy PROXY] [--validate] [--show] [--verify-url VERIFY_URL] [--verify-ssl] [--no-prefix] [--add-prefix] [--timestamp] [--deduplicate] [--deduplicate-file DEDUPLICATE_FILE]
+                        [--deduplicate-after-save] [--show-invalid] [--simple-report] [--verbose] [--overnight] [--interval INTERVAL] [--validate-timeout VALIDATE_TIMEOUT] [--request-timeout REQUEST_TIMEOUT]
+                        [--deduplicate-debug] [--remove-prefix] [--crawl-threads CRAWL_THREADS] [--validate-threads VALIDATE_THREADS] [--monitor]
+
+从多个网站爬取代理服务器。
+
+options:
+  -h, --help            show this help message and exit
+  --proxy PROXY         指定代理服务器（例如：http://127.0.0.1:8080 或 socks5://127.0.0.1:1080）。
+  --validate            在保存前验证代理IP是否可用。
+  --show                实时显示爬取到的代理IP。
+  --verify-url VERIFY_URL
+                        指定用于验证代理的目标网站（默认：http://httpbin.org/ip）。
+  --verify-ssl          启用SSL验证（默认禁用）。
+  --no-prefix           保存代理IP时不添加前缀（默认不添加前缀）。
+  --add-prefix          保存代理IP时添加前缀（默认不添加前缀）。
+  --timestamp           保存代理IP时在文件名中添加时间戳（默认保存到 proxy_list.txt）。
+  --deduplicate         对文件中的代理IP进行去重。
+  --deduplicate-file DEDUPLICATE_FILE
+                        指定需要去重的文件（默认：proxy_list.txt）。
+  --deduplicate-after-save
+                        保存代理IP后对文件内容进行去重。
+  --show-invalid        显示无效代理的警告信息。
+  --simple-report       显示简单的代理获取报告。
+  --verbose             显示详细的调试信息。
+  --overnight           启用通宵挂机无人值守模式。
+  --interval INTERVAL   自定义每次爬取的间隔时间（单位为秒，默认：2秒）。
+  --validate-timeout VALIDATE_TIMEOUT
+                        验证代理IP的超时时间（单位为秒，默认：30秒）。
+  --request-timeout REQUEST_TIMEOUT
+                        发送请求的超时时间（单位为秒，默认：30秒）。
+  --deduplicate-debug   启用去重调试输出。
+  --remove-prefix       在程序完成后，删除 proxy_list.txt 中每一行的前缀（如 http://, https://, socks5://）。
+  --crawl-threads CRAWL_THREADS
+                        指定爬取代理IP时的线程数（默认：5）。
+  --validate-threads VALIDATE_THREADS
+                        指定验证代理IP时的线程数（默认：10）。
+  --monitor             启用线程监控功能，实时显示线程状态。
